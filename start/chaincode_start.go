@@ -42,7 +42,10 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
-
+	err := stub.PutState("hello_world", []byte(args[0]))
+	if err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -59,16 +62,53 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	return nil, errors.New("Received unknown function invocation: " + function)
 }
 
+// write 
+func (t *SimpleChaincode) write(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+        var name, value string
+	var err error
+	fmt.Println("running write()")
+
+	if len(args) != 2 {
+		return nil, error.New("Incorrect number of arguments. Expecting 2. name of the variable and value to set")
+	}
+
+	name = args[0]
+	value = args[1]
+	err := stub.PutState(name, []byte(value))
+        if err != nil {
+                return nil, err
+        }
+        return nil, nil
+}
+
 // Query is our entry point for queries
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("query is running " + function)
 
 	// Handle different functions
-	if function == "dummy_query" {											//read a variable
-		fmt.Println("hi there " + function)						//error
-		return nil, nil;
-	}
+	if function == "read" {
+		return t.read(stub, args)
+	}											//read a variable
 	fmt.Println("query did not find func: " + function)						//error
 
 	return nil, errors.New("Received unknown function query: " + function)
+}
+
+
+// read
+func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+        var name,  jsonresp string
+        var err error
+
+        if len(args) != 1 {
+                return nil, error.New("Incorrect number of arguments. expecting name of the var to query")
+        }
+
+        name = args[0]
+        valAsbytes, err := stub.GetState(name)
+        if err != nil {
+		jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
+                return nil, errors.New(jsonResp)
+        }
+        return valAsbytes, nil
 }
